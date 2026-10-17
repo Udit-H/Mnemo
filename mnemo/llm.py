@@ -12,7 +12,7 @@ import threading
 import time
 
 from dotenv import load_dotenv
-from groq import Groq, RateLimitError
+from groq import AuthenticationError, Groq, RateLimitError
 
 DEFAULT_COOLDOWN_S = 30.0
 MAX_WAIT_S = 120.0
@@ -28,6 +28,7 @@ class GroqPool:
     Groq rate limits are per model, so a cooldown on one model does not block the others.
     When every key is cooling down for a model, the next model in `fallback_models` is tried.
     If everything is cooling down, it waits for the earliest cooldown to end (up to MAX_WAIT_S).
+    Keys rejected as invalid are dropped for the rest of the process.
     """
 
     def __init__(self, keys: list[str], agent_model: str, extract_model: str, fallback_models: list[str]):
@@ -38,6 +39,7 @@ class GroqPool:
         self.extract_model = extract_model
         self.fallback_models = fallback_models
         self._cooldown_until: dict[tuple[int, str], float] = {}
+        self._dead: set[int] = set()
         self._next = 0
         self._lock = threading.Lock()
 
@@ -46,7 +48,7 @@ class GroqPool:
         load_dotenv()
         return cls(
             keys=_split(os.environ.get("GROQ_API_KEYS", "")),
-            agent_model=os.environ.get("GROQ_AGENT_MODEL", "llama-3.3-70b-versatile"),
+            agent_model=os.environ.get("GROQ_AGENT_MODEL", "openai/gpt-oss-120b"),
             extract_model=os.environ.get("GROQ_EXTRACT_MODEL", "openai/gpt-oss-120b"),
             fallback_models=_split(os.environ.get("GROQ_FALLBACK_MODELS", "")),
         )
@@ -66,16 +68,20 @@ class GroqPool:
         while True:
             for m in models:
                 for i in self._key_order():
-                    if self._cooldown_until.get((i, m), 0.0) > time.monotonic():
+                    if i in self._dead or self._cooldown_until.get((i, m), 0.0) > time.monotonic():
                         continue
                     try:
                         return self.clients[i].chat.completions.create(model=m, messages=messages, **kwargs)
+                    except AuthenticationError:
+                        self._dead.add(i)
                     except RateLimitError as e:
                         retry_after = e.response.headers.get("retry-after")
                         wait = float(retry_after) if retry_after else DEFAULT_COOLDOWN_S
                         self._cooldown_until[(i, m)] = time.monotonic() + wait
 
-            soonest = min(self._cooldown_until.values())
+            if len(self._dead) == len(self.clients):
+                raise RuntimeError("All Groq API keys were rejected as invalid")
+            soonest = min(t for (i, _), t in self._cooldown_until.items() if i not in self._dead)
             if soonest > deadline:
                 raise RuntimeError("All Groq keys and models are rate-limited")
             time.sleep(max(0.0, soonest - time.monotonic()))
