@@ -11,7 +11,7 @@ from mnemo.ingest.models import ContextRef, Conversation, Message, ToolCall, app
 
 DEFAULT_ROOT = Path.home() / ".claude" / "projects"
 
-_REMINDER = re.compile(r"<system-reminder>.*?</system-reminder>", re.DOTALL)
+_REMINDER = re.compile(r"<(system-reminder|task-notification)>.*?</\1>", re.DOTALL)
 _NOISE_PREFIXES = ("<command-", "<local-command", "Caveat: The messages below")
 
 
@@ -74,7 +74,7 @@ def parse_session(path: Path) -> Conversation | None:
     return Conversation(
         id=f"claude_code:{path.stem}",
         source="claude_code",
-        title=title or first_prompt[:80],
+        title=title or first_prompt.splitlines()[0][:80],
         started_at=to_datetime(min(timestamps)) if timestamps else None,
         ended_at=to_datetime(max(timestamps)) if timestamps else None,
         messages=messages,

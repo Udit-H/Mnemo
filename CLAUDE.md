@@ -50,7 +50,10 @@ components, repo layout, demo script and milestones. If you change the design, u
 - [x] M1 Ingest: `python -m scripts.ingest {claude_code|chatgpt|claude_ai} [path] [--limit N] [--dry-run]`.
       Claude Code is loaded (25 sessions, 703 messages, 11 project Contexts). The ChatGPT and Claude.ai parsers are
       tested only on samples shaped like the export format; check them once the real exports arrive.
-- [ ] M2 Extract + write to graph
+- [x] M2 Extract: `python -m scripts.extract [--source S] [--limit N] [--force] [--reset]`. All 25 Claude Code
+      conversations are extracted: 90 topics, 130 entities, 9 goals, 85 tasks, 10 preferences. After a new ingest,
+      run it with no flags; cached conversations are skipped. Known weakness: topic reuse is low (78/90 appear in only
+      one conversation). Embedding-based topic merge is planned for M3.
 - [ ] M3 Recall + agent loop
 - [ ] M4 Streamlit UI (chat + graph + insights)
 - [ ] M5 Demo polish + seeded backup graph

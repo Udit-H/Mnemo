@@ -142,6 +142,23 @@ shared. Conventions:
 - Normalize names (lowercase, trim) before `MERGE` to avoid duplicates. Fuzzy-merge topics using embedding similarity.
 - **Time-box quality work.** Good enough beats perfect.
 
+As built (`mnemo/extract/`, `python -m scripts.extract`):
+
+- Groq `json_object` mode + Pydantic validation (lenient: unknown domain/kind/outcome values are coerced, lists
+  capped). It retries up to 3 times on invalid JSON.
+- **Graph-informed extraction:** the prompt includes existing goals, active preferences and the top topics from the
+  graph. The model reuses their ids or names to avoid duplicates, and sets `replaces` to supersede an old preference.
+  Conversations are processed oldest first so that `since` and supersession make sense.
+- Transcript per conversation: user messages ≤1500 chars, assistant ≤400, total ≤14k chars (head 40% + tail 60%).
+- Cache: `data/cache/extract/<sha1(conv id)>.json`, keyed by transcript hash. Unchanged conversations cost no calls.
+- Ids: `stable_id(prefix, text)` hashes normalized text without punctuation (goal/pref/task).
+- Re-extracting a conversation clears what it contributed before writing. Orphaned Topic/Entity/Goal/Preference
+  nodes are pruned. `--reset` wipes all extracted memory but leaves the ingested data alone.
+- `RELATED_TO {weight}` links topics that co-occur in ≥2 conversations.
+
+Extra relationships added by extraction: `(:Conversation)-[:IN_DOMAIN]->(:Domain)`, `(:Goal|:Preference)-[:FROM]->
+(:Conversation)`, `(:Preference)-[:SUPERSEDES]->(:Preference)`; `PREFERS` also carries `mentions`.
+
 ### 5.3 Graph Writer
 
 Idempotent `MERGE`-based Cypher, one transaction per conversation. Re-running ingestion must not create duplicates.

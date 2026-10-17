@@ -14,6 +14,8 @@ def get_driver() -> Driver:
     driver = GraphDatabase.driver(
         os.environ["NEO4J_URI"],
         auth=(os.environ["NEO4J_USERNAME"], os.environ["NEO4J_PASSWORD"]),
+        # Silence "relationship type does not exist yet" warnings on a fresh graph.
+        notifications_disabled_classifications=["UNRECOGNIZED"],
     )
     driver.verify_connectivity()
     return driver
