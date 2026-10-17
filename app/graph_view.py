@@ -4,6 +4,10 @@ from pyvis.network import Network
 
 COLORS = {
     "Me": "#e8590c",
+    "Thread": "#364fc7",
+    "Person": "#0ca678",
+    "Org": "#5c940d",
+    "Commitment": "#d6336c",
     "Conversation": "#4c6ef5",
     "Topic": "#12b886",
     "Entity": "#20c997",
@@ -13,7 +17,40 @@ COLORS = {
     "Preference": "#e64980",
     "Domain": "#1c7ed6",
 }
-SIZES = {"Me": 28, "Goal": 20, "Preference": 18, "Conversation": 18, "Domain": 16}
+SIZES = {"Me": 28, "Thread": 24, "Goal": 20, "Preference": 18, "Conversation": 16, "Domain": 16, "Person": 18}
+
+
+def thread_graph(nb: dict) -> tuple[list[dict], list[dict]]:
+    """Nodes/edges for one thread's neighbourhood (THREAD_NEIGHBORHOOD row)."""
+    nodes = {"me": {"id": "me", "label": "Me", "name": "Me"},
+             nb["id"]: {"id": nb["id"], "label": "Thread", "name": nb["subject"]}}
+    edges = []
+
+    def add(nid, label, name, source, target, rel):
+        nodes.setdefault(nid, {"id": nid, "label": label, "name": name})
+        edges.append({"source": source, "target": target, "type": rel})
+
+    for p in nb["people"]:
+        pid = f"p:{p['email']}"
+        add(pid, "Person", p["name"] or p["email"], nb["id"], pid, "INVOLVES")
+        if p["importance"] is not None:
+            edges.append({"source": "me", "target": pid, "type": f"CORRESPONDS_WITH {p['importance']}"})
+        if p["org"]:
+            add(f"o:{p['org']}", "Org", p["org"], pid, f"o:{p['org']}", "WORKS_AT")
+    for c in nb["commitments"]:
+        add(c["id"], "Commitment", f"{c['text']} ({c['status']})", nb["id"], c["id"], "HAS_COMMITMENT")
+        owner = "me" if c["owner"] == "me" else f"p:{c['by']}"
+        if owner in nodes:
+            edges.append({"source": c["id"], "target": owner, "type": "OWED_BY"})
+    for t in nb["topics"]:
+        add(f"t:{t}", "Topic", t, nb["id"], f"t:{t}", "ABOUT")
+    for x in nb["projects"]:
+        add(f"x:{x}", "Context", x, nb["id"], f"x:{x}", "IN_CONTEXT")
+        for chat in nb["related_chats"]:
+            add(f"c:{chat}", "Conversation", chat, f"c:{chat}", f"x:{x}", "IN_CONTEXT")
+    for g in nb["goals"]:
+        add(f"g:{g}", "Goal", g, nb["id"], f"g:{g}", "RELATES_TO")
+    return list(nodes.values()), edges
 
 
 def _short(text: str, n: int = 32) -> str:

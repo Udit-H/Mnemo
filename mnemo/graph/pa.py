@@ -109,3 +109,23 @@ Rels: (Me)-[:IS]->(Self), (Me)-[:CORRESPONDS_WITH{received,sent,reply_rate,avg_r
 (Thread)-[:IN_CONTEXT]->(Context), (Thread)-[:RELATES_TO]->(Goal), (Me)-[:HAS_GOAL]->(Goal),
 (Me)-[:PREFERS{since,until}]->(Preference), (Conversation)-[:ABOUT]->(Topic), (Conversation)-[:IN_CONTEXT]->(Context),
 (Task)-[:FROM]->(Conversation), (Task)-[:SERVES]->(Goal)."""
+
+# Everything around one thread, for the thread panel and its graph: people (+ how the user treats them), orgs,
+# commitments and who owes them, topics, linked projects/goals, and past AI chats in the same project.
+THREAD_NEIGHBORHOOD = """
+MATCH (th:Thread {id: $id})
+RETURN th.id AS id, th.subject AS subject, th.summary AS summary, th.category AS category,
+       th.needs_reply AS needs_reply, th.urgency AS urgency, toString(date(th.last_at)) AS date,
+       [(th)-[:HAS_EMAIL]->(:Email)-[:FROM|TO|CC]->(p:Person) WHERE NOT p:Self |
+          p {.email, .name, org: [(p)-[:WORKS_AT]->(o) | o.domain][0],
+             importance: [(:Me)-[c:CORRESPONDS_WITH]->(p) | round(c.importance, 2)][0],
+             reply_rate: [(:Me)-[c:CORRESPONDS_WITH]->(p) | c.reply_rate][0],
+             avg_reply_hours: [(:Me)-[c:CORRESPONDS_WITH]->(p) | round(c.avg_reply_hours, 1)][0]}] AS people,
+       [(th)-[:HAS_COMMITMENT]->(c:Commitment) |
+          c {.id, .text, .owner, .status, due: toString(c.due),
+             by: [(c)-[:OWED_BY]->(o) | coalesce(o.email, 'me')][0]}] AS commitments,
+       [(th)-[:ABOUT]->(t:Topic) | t.name] AS topics,
+       [(th)-[:IN_CONTEXT]->(x:Context) | x.name] AS projects,
+       [(th)-[:RELATES_TO]->(g:Goal) | g.text] AS goals,
+       [(th)-[:IN_CONTEXT]->(:Context)<-[:IN_CONTEXT]-(conv:Conversation) | conv.title][..3] AS related_chats
+"""

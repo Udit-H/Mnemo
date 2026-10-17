@@ -59,12 +59,12 @@ def thread_details(ctx: ToolContext, thread_id: str):
     }, Q.THREAD_GRAPH
 
 
-def draft_reply(ctx: ToolContext, thread_id: str, instructions: str = ""):
-    """Write a reply in the user's voice for this person, and save it to Gmail Drafts (never sends)."""
+def compose_reply(ctx: ToolContext, thread_id: str, instructions: str = "") -> dict:
+    """Write a reply in the user's voice for this person. Doesn't save anything (see save_draft)."""
     style = (_rows(ctx, Q.REPLY_CONTEXT, id=thread_id) or [{}])[0]
     messages = fetch_thread_text(ctx.gmail, thread_id)
     if not messages:
-        return {"error": "thread not found"}, Q.REPLY_CONTEXT
+        return {"error": "thread not found"}
     last_other = next((m for m in reversed(messages) if m["from"].email not in ctx.self_emails), messages[-1])
     transcript = "\n\n---\n\n".join(f"FROM {m['from'].name or m['from'].email}:\n{m['text'][:1500]}"
                                     for m in messages[-4:])
@@ -78,12 +78,27 @@ User's instructions for this reply: {instructions or 'reply appropriately'}
 Thread:
 {transcript}"""
     resp = ctx.llm.chat([{"role": "user", "content": prompt}], model=ctx.llm.agent_model, temperature=0.4)
-    body = (resp.choices[0].message.content or "").strip()
-    draft_id = create_draft(ctx.gmail, thread_id, to=last_other["from"].email, subject=messages[0]["subject"],
-                            body=body, in_reply_to=last_other["message_id"], references=last_other["references"])
-    return {"draft_id": draft_id, "to": last_other["from"].email, "subject": messages[0]["subject"], "body": body,
-            "style_used": {k: style.get(k) for k in ("scoped_preferences", "global_preferences")},
-            "note": "Saved to Gmail Drafts. Not sent."}, Q.REPLY_CONTEXT
+    return {"thread_id": thread_id, "to": last_other["from"].email, "subject": messages[0]["subject"],
+            "body": (resp.choices[0].message.content or "").strip(),
+            "in_reply_to": last_other["message_id"], "references": last_other["references"],
+            "style_used": {k: style.get(k) for k in ("scoped_preferences", "global_preferences")}}
+
+
+def save_draft(ctx: ToolContext, reply: dict, body: str | None = None) -> str:
+    """Save a composed reply (optionally with the user's edited body) to Gmail Drafts. Never sends."""
+    return create_draft(ctx.gmail, reply["thread_id"], to=reply["to"], subject=reply["subject"],
+                        body=body if body is not None else reply["body"], in_reply_to=reply["in_reply_to"],
+                        references=reply["references"])
+
+
+def draft_reply(ctx: ToolContext, thread_id: str, instructions: str = ""):
+    """Write a reply in the user's voice for this person, and save it to Gmail Drafts (never sends)."""
+    reply = compose_reply(ctx, thread_id, instructions)
+    if "error" in reply:
+        return reply, Q.REPLY_CONTEXT
+    reply["draft_id"] = save_draft(ctx, reply)
+    reply["note"] = "Saved to Gmail Drafts. Not sent."
+    return reply, Q.REPLY_CONTEXT
 
 
 def run_cypher(ctx: ToolContext, query: str):

@@ -86,7 +86,13 @@ components, repo layout, demo script and milestones. If you change the design, u
       loop over triage_inbox, person_context, open_commitments, search_memory, thread_details, draft_reply
       (Gmail Drafts only), run_cypher (read-only session). Each step is traced with its Cypher. CLI:
       `python -m scripts.pa [--trace]`.
-- [ ] G5 Feedback loop: approve/edit/dismiss → graph updates (scoped preferences, importance boosts).
-- [ ] G6 PA UI: graph-ranked inbox with reasons, thread context panel, draft, agent chat.
+- [x] G5 Feedback (`mnemo/graph/feedback.py`, `mnemo/agent/learning.py`): every action is
+      `(:Me)-[:GAVE]->(:Feedback)-[:ON]->(target)`. Dismiss/"more like this" → ±0.15 `feedback_boost` on the senders'
+      CORRESPONDS_WITH (capped ±0.4, survives --stats-only) + thread dismissed. Commitment checkbox → status.
+      Draft edit → LLM diff → Preference `-[:APPLIES_TO]->` Person/Org (or global), used by the next compose_reply.
+- [x] G6 PA UI (`app/streamlit_app.py`): Inbox (TRIAGE-ranked, with reasons from graph fields, ⬆/✕ feedback) +
+      thread panel (THREAD_NEIGHBORHOOD graph: people/orgs/commitments/topics/project → related AI chats,
+      commitment checkboxes, draft in my voice → edit → Save to Gmail Drafts + learn), Ask Mnemo (tool steps with
+      Cypher + results), What Mnemo learned (feedback log, scoped prefs, importance), Memory insights (v1).
 
 Update this checklist as milestones land.
