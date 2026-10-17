@@ -119,6 +119,7 @@ preferences are `WHERE r.until IS NULL`.
 | ChatGPT export | `conversations.json` from Settings → Data controls → Export | Conversation + Messages |
 | Claude.ai export | `conversations.json` from Settings → Privacy → Export | Conversation + Messages |
 | Claude Code logs | `~/.claude/projects/<project>/*.jsonl` | Conversation (session) + Messages + tool calls + files touched |
+| Gemini (Google Takeout) | `Takeout/My Activity/Gemini Apps/MyActivity.html` | "Prompted" cards grouped into Conversations by a >30 min gap; scheduled actions, Live sessions and uploads skipped |
 | Stretch: Calendar / Notion | API / MCP | Context, Task, Entity |
 
 All parsers emit the same normalized `Conversation` (`mnemo/ingest/models.py`), so extraction and graph writing are

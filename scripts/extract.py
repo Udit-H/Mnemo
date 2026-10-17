@@ -3,7 +3,7 @@
 Run from the repo root:
     python -m scripts.extract                    # every conversation; cached ones cost no LLM calls
     python -m scripts.extract --source chatgpt   # one source only
-    python -m scripts.extract --limit 3          # try it on the 3 oldest first
+    python -m scripts.extract --limit 40         # only the 40 most recent (still processed oldest first)
     python -m scripts.extract --force            # ignore the cache
     python -m scripts.extract --reset --force    # wipe all extracted memory first, then rebuild from scratch
 """
@@ -40,7 +40,7 @@ DELETE r
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("--source", choices=["claude_code", "chatgpt", "claude_ai"])
+    parser.add_argument("--source", choices=["claude_code", "chatgpt", "claude_ai", "gemini"])
     parser.add_argument("--limit", type=int)
     parser.add_argument("--force", action="store_true")
     parser.add_argument("--reset", action="store_true")
@@ -52,7 +52,9 @@ def main() -> int:
         if args.reset:
             driver.execute_query(RESET, database_=database())
             print("Reset: removed all extracted memory")
-        convs = conversations_for_extraction(driver, args.source)[: args.limit]
+        convs = conversations_for_extraction(driver, args.source)
+        if args.limit:
+            convs = convs[-args.limit:]
         print(f"Extracting {len(convs)} conversations with {llm.extract_model}")
         for i, conv in enumerate(convs, 1):
             # Re-read memory each time so later conversations can reuse or supersede earlier results.

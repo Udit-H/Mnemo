@@ -4,6 +4,7 @@ Run from the repo root:
     python -m scripts.ingest claude_code                       # ~/.claude/projects
     python -m scripts.ingest chatgpt   data/chatgpt/conversations.json
     python -m scripts.ingest claude_ai data/claude_ai/conversations.json
+    python -m scripts.ingest gemini    "data/gemini/Takeout/My Activity/Gemini Apps/MyActivity.html"
 Options:
     --limit N    only the N most recent conversations (saves Groq quota later in extraction)
     --dry-run    parse and summarise without writing to Neo4j
@@ -17,9 +18,14 @@ from pathlib import Path
 
 from mnemo.graph.db import database, get_driver
 from mnemo.graph.writer import write_conversations
-from mnemo.ingest import chatgpt, claude_ai, claude_code
+from mnemo.ingest import chatgpt, claude_ai, claude_code, gemini
 
-PARSERS = {"claude_code": claude_code.parse_all, "chatgpt": chatgpt.parse_all, "claude_ai": claude_ai.parse_all}
+PARSERS = {
+    "claude_code": claude_code.parse_all,
+    "chatgpt": chatgpt.parse_all,
+    "claude_ai": claude_ai.parse_all,
+    "gemini": gemini.parse_all,
+}
 EPOCH = datetime.min.replace(tzinfo=timezone.utc)
 
 
@@ -32,7 +38,7 @@ def main() -> int:
     args = parser.parse_args()
 
     if args.source != "claude_code" and not args.path:
-        parser.error(f"{args.source} needs the path to conversations.json")
+        parser.error(f"{args.source} needs the path to its export file")
     convs = PARSERS[args.source](args.path) if args.path else PARSERS[args.source]()
     convs.sort(key=lambda c: c.started_at or EPOCH, reverse=True)
     if args.limit:

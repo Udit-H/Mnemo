@@ -32,7 +32,7 @@ class ContextRef(BaseModel):
 
 class Conversation(BaseModel):
     id: str  # "<source>:<native id>"
-    source: Literal["claude_code", "chatgpt", "claude_ai"]
+    source: Literal["claude_code", "chatgpt", "claude_ai", "gemini"]
     title: str
     started_at: datetime | None = None
     ended_at: datetime | None = None

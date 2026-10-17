@@ -47,13 +47,16 @@ components, repo layout, demo script and milestones. If you change the design, u
 - [x] Idea + architecture (`docs/ARCHITECTURE.md`)
 - [x] M0 Setup: AuraDB connected, schema applied, Groq keys checked. Re-verify any time with
       `./venv/bin/python -m scripts.init_db`. The venv is at `./venv`.
-- [x] M1 Ingest: `python -m scripts.ingest {claude_code|chatgpt|claude_ai} [path] [--limit N] [--dry-run]`.
-      Claude Code is loaded (25 sessions, 703 messages, 11 project Contexts). The ChatGPT and Claude.ai parsers are
-      tested only on samples shaped like the export format; check them once the real exports arrive.
-- [x] M2 Extract: `python -m scripts.extract [--source S] [--limit N] [--force] [--reset]`. All 25 Claude Code
-      conversations are extracted: 90 topics, 130 entities, 9 goals, 85 tasks, 10 preferences. After a new ingest,
-      run it with no flags; cached conversations are skipped. Known weakness: topic reuse is low (78/90 appear in only
-      one conversation). Embedding-based topic merge is planned for M3.
+- [x] M1 Ingest: `python -m scripts.ingest {claude_code|chatgpt|claude_ai|gemini} [path] [--limit N] [--dry-run]`.
+      Loaded: Claude Code (25 sessions, 11 project Contexts) and Gemini (469 conversations from
+      `data/gemini/Takeout/My Activity/Gemini Apps/MyActivity.html`). The ChatGPT and Claude.ai parsers are tested
+      only on samples shaped like the export format.
+- [x] M2 Extract: `python -m scripts.extract [--source S] [--limit N] [--force] [--reset]`. `--limit N` = the N
+      most recent. Extracted: all 25 Claude Code conversations and the 40 most recent Gemini ones (209 topics,
+      242 entities, 12 goals, 146 tasks, 13 preferences across coding/learning/career/planning/personal). Groq free
+      tier: extract Gemini in batches of about 40, not all 469 at once. Known weakness: topic reuse is low.
+      Embedding-based topic merge is planned for M3. Cross-source bridges exist (jwt, fastapi, duckdb, bm25 link
+      Gemini ↔ Claude Code across coding/learning/career).
 - [ ] M3 Recall + agent loop
 - [ ] M4 Streamlit UI (chat + graph + insights)
 - [ ] M5 Demo polish + seeded backup graph
