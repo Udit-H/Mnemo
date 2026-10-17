@@ -74,13 +74,18 @@ components, repo layout, demo script and milestones. If you change the design, u
 - [ ] M5 Demo polish + seeded backup graph (after v2)
 
 ### v2: Gmail PA
-- [ ] G1 Gmail connector (`mnemo/gmail/`): OAuth (`secrets/gmail_credentials.json` → `secrets/gmail_token.json`,
+- [x] G1 Gmail connector (`mnemo/gmail/`): OAuth (`secrets/gmail_credentials.json` → `secrets/gmail_token.json`,
       scopes readonly + compose), fetch threads, create drafts. Login: `python -m scripts.gmail_auth`.
-- [ ] G2 Email → graph (no LLM): Person, Org, Thread, Email + `CORRESPONDS_WITH` stats/importance.
-      `python -m scripts.gmail_sync`.
-- [ ] G3 LLM extraction on recent threads: commitments, asks, topics; link to v1 Contexts/Goals.
-- [ ] G4 Tool-using agent (triage_inbox, person_context, open_commitments, draft_reply, search_memory), with
-      Cypher visible.
+- [x] G2 Email → graph (no LLM): Person, Org, Thread, Email + `CORRESPONDS_WITH` stats/importance.
+      `python -m scripts.gmail_sync [--days N --max N | --stats-only]`. Importance = reply behaviour + volume +
+      Gmail Important/Personal share + recency + feedback. `SELF_ALIASES` in .env = the user's other addresses.
+- [x] G3 `python -m scripts.email_extract [--limit 40 --days 60]`: Thread summary/category/needs_reply/urgency,
+      `(:Thread)-[:HAS_COMMITMENT]->(:Commitment {owner, due, status})-[:OWED_BY]->(Person|Me)`, ABOUT Topic,
+      IN_CONTEXT Context / RELATES_TO Goal (links email to v1 memory). Cache: data/cache/email/.
+- [x] G4 `mnemo/agent/pa_agent.py` + `mnemo/agent/tools.py` (Cypher in `mnemo/graph/pa.py`): Groq tool-calling
+      loop over triage_inbox, person_context, open_commitments, search_memory, thread_details, draft_reply
+      (Gmail Drafts only), run_cypher (read-only session). Each step is traced with its Cypher. CLI:
+      `python -m scripts.pa [--trace]`.
 - [ ] G5 Feedback loop: approve/edit/dismiss → graph updates (scoped preferences, importance boosts).
 - [ ] G6 PA UI: graph-ranked inbox with reasons, thread context panel, draft, agent chat.
 

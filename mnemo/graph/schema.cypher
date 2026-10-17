@@ -42,3 +42,5 @@ CREATE CONSTRAINT org_domain IF NOT EXISTS FOR (n:Org) REQUIRE n.domain IS UNIQU
 CREATE CONSTRAINT thread_id IF NOT EXISTS FOR (n:Thread) REQUIRE n.id IS UNIQUE;
 CREATE CONSTRAINT email_id IF NOT EXISTS FOR (n:Email) REQUIRE n.id IS UNIQUE;
 CREATE INDEX thread_last_at IF NOT EXISTS FOR (n:Thread) ON (n.last_at);
+CREATE CONSTRAINT commitment_id IF NOT EXISTS FOR (n:Commitment) REQUIRE n.id IS UNIQUE;
+CREATE FULLTEXT INDEX thread_text IF NOT EXISTS FOR (n:Thread) ON EACH [n.subject, n.summary];

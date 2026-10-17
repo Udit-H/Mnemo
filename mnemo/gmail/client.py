@@ -6,6 +6,7 @@ Token:        secrets/gmail_token.json (written by `python -m scripts.gmail_auth
 
 import base64
 import html
+import os
 import re
 import time
 from datetime import datetime, timezone
@@ -47,8 +48,13 @@ def get_service(interactive: bool = False):
     return build("gmail", "v1", credentials=creds, cache_discovery=False)
 
 
-def my_address(service) -> str:
-    return service.users().getProfile(userId="me").execute()["emailAddress"].lower()
+def my_addresses(service) -> list[str]:
+    """The account address, Gmail send-as aliases, and SELF_ALIASES from .env (other addresses that are you)."""
+    found = [service.users().getProfile(userId="me").execute()["emailAddress"]]
+    found += [a["sendAsEmail"] for a in service.users().settings().sendAs().list(userId="me").execute()
+              .get("sendAs", [])]
+    found += os.environ.get("SELF_ALIASES", "").split(",")
+    return list(dict.fromkeys(e.strip().lower() for e in found if e.strip()))
 
 
 def _address(raw: str) -> Address | None:
@@ -133,6 +139,52 @@ def fetch_threads(service, query: str = "newer_than:90d -in:chats", max_threads:
 
     threads = (_parse_thread(raw[t]) for t in ids if t in raw)
     return [t for t in threads if t]
+
+
+_QUOTE_START = re.compile(r"^(On .{5,200} wrote:|-----Original Message-----|From: .+)$", re.M)
+_TAG = re.compile(r"<[^>]+>")
+
+
+def _decode(data: str) -> str:
+    return base64.urlsafe_b64decode(data + "=" * (-len(data) % 4)).decode("utf-8", errors="replace")
+
+
+def _body_text(payload: dict) -> str:
+    """Prefer text/plain; fall back to stripped text/html. Walks nested multipart."""
+    plain, rich = [], []
+
+    def walk(part: dict) -> None:
+        mime, data = part.get("mimeType", ""), part.get("body", {}).get("data")
+        if data and mime == "text/plain":
+            plain.append(_decode(data))
+        elif data and mime == "text/html":
+            rich.append(html.unescape(_TAG.sub(" ", re.sub(r"(?is)<(style|script).*?</\1>", "", _decode(data)))))
+        for sub in part.get("parts", []) or []:
+            walk(sub)
+
+    walk(payload)
+    return "\n".join(plain) if plain else "\n".join(rich)
+
+
+def _strip_quoted(text: str) -> str:
+    """Drop the quoted history under replies, which is already in earlier messages."""
+    m = _QUOTE_START.search(text)
+    text = text[: m.start()] if m else text
+    lines = [line for line in text.splitlines() if not line.lstrip().startswith(">")]
+    return re.sub(r"\n{3,}", "\n\n", "\n".join(lines)).strip()
+
+
+def fetch_thread_text(service, thread_id: str) -> list[dict]:
+    """Full bodies for one thread: [{from, to, at, subject, text}], oldest first, quoted history removed."""
+    raw = service.users().threads().get(userId="me", id=thread_id, format="full").execute()
+    out = []
+    for msg in raw.get("messages", []):
+        parsed = _parse_message(msg)
+        if parsed:
+            out.append({"from": parsed.sender, "to": parsed.to, "at": parsed.at, "subject": parsed.subject,
+                        "message_id": parsed.message_id, "references": parsed.references,
+                        "text": _strip_quoted(_body_text(msg.get("payload", {})))})
+    return sorted(out, key=lambda m: m["at"])
 
 
 def create_draft(service, thread_id: str, to: str, subject: str, body: str,
