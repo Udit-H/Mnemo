@@ -24,28 +24,38 @@ from mnemo.gmail.models import Address, EmailMsg, EmailThread
 ROOT = Path(__file__).resolve().parents[2]
 CREDENTIALS = ROOT / "secrets" / "gmail_credentials.json"
 TOKEN = ROOT / "secrets" / "gmail_token.json"
-SCOPES = [
+GMAIL_SCOPES = [
     "https://www.googleapis.com/auth/gmail.readonly",
     "https://www.googleapis.com/auth/gmail.compose",  # drafts; we never call send
 ]
+CALENDAR_SCOPES = [
+    "https://www.googleapis.com/auth/calendar.readonly",
+    "https://www.googleapis.com/auth/calendar.events",  # create events the user approved; never sends invites
+]
+SCOPES = GMAIL_SCOPES + CALENDAR_SCOPES  # one login covers every Google tool
 HEADERS = ["From", "To", "Cc", "Subject", "Message-ID", "References", "List-Unsubscribe", "Precedence"]
 BATCH_SIZE = 25  # threads.get costs 10 quota units; Gmail allows 250 units/s per user
 _BULK_SENDER = re.compile(r"^(no-?reply|do-?not-?reply|notifications?|mailer-daemon|newsletter|alerts?)\b", re.I)
 
 
-def get_service(interactive: bool = False):
-    creds = Credentials.from_authorized_user_file(str(TOKEN), SCOPES) if TOKEN.exists() else None
+def google_credentials(required: list[str], interactive: bool = False) -> Credentials:
+    """Load the saved token; log in again (interactive only) if it's missing or lacks a required scope."""
+    creds = Credentials.from_authorized_user_file(str(TOKEN)) if TOKEN.exists() else None
     if creds and creds.expired and creds.refresh_token:
         creds.refresh(Request())
         TOKEN.write_text(creds.to_json())
-    if not creds or not creds.valid:
+    if not creds or not creds.valid or not creds.has_scopes(required):
         if not interactive:
-            raise RuntimeError("Gmail is not authorised yet. Run: python -m scripts.gmail_auth")
+            raise RuntimeError("Google access missing or out of date. Run: python -m scripts.gmail_auth")
         if not CREDENTIALS.exists():
             raise FileNotFoundError(f"Missing OAuth client file: {CREDENTIALS}")
         creds = InstalledAppFlow.from_client_secrets_file(str(CREDENTIALS), SCOPES).run_local_server(port=0)
         TOKEN.write_text(creds.to_json())
-    return build("gmail", "v1", credentials=creds, cache_discovery=False)
+    return creds
+
+
+def get_service(interactive: bool = False):
+    return build("gmail", "v1", credentials=google_credentials(GMAIL_SCOPES, interactive), cache_discovery=False)
 
 
 def my_addresses(service) -> list[str]:

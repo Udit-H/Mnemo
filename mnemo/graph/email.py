@@ -58,7 +58,8 @@ SET p.is_bulk = EXISTS { (e:Email {is_bulk: true})-[:FROM]->(p) }
 # How the user actually treats each person, computed from the graph:
 #   answered = their emails you replied to later in the same thread; avg_reply_hours = how fast.
 #   human_share = share of their emails Gmail filed as Important/Personal (vs Updates/Promotions).
-#   importance mixes reply behaviour, how much you write to them, human_share, recency, and UI feedback (G5).
+#   met = past calendar events with them (C2), so people you meet but rarely email still count.
+#   importance mixes reply behaviour, how much you write to them, human_share, recency, meetings and UI feedback.
 CORRESPONDENCE_STATS = """
 MATCH (:Me)-[stale:CORRESPONDS_WITH]->(:Self)
 DELETE stale
@@ -78,11 +79,16 @@ CALL (p) {
   OPTIONAL MATCH (e:Email)-[:FROM]->(:Self) WHERE EXISTS { (e)-[:TO|CC]->(p) }
   RETURN count(DISTINCT e) AS sent, max(e.at) AS last_out
 }
-WITH me, p, received, answered, avg_reply_hours, sent, human,
-     CASE WHEN last_in IS NULL OR (last_out IS NOT NULL AND last_out > last_in) THEN last_out ELSE last_in END AS last
-WHERE received + sent > 0
+CALL (p) {
+  OPTIONAL MATCH (ev:Event)-[a:ATTENDED_BY]->(p) WHERE ev.start < datetime() AND a.response <> 'declined'
+  RETURN count(ev) AS met, max(ev.start) AS last_met
+}
+WITH me, p, received, answered, avg_reply_hours, sent, human, met, last_met,
+     reduce(m = null, d IN [last_in, last_out, last_met] | CASE WHEN m IS NULL OR d > m THEN d ELSE m END) AS last
+WHERE received + sent + met > 0
 MERGE (me)-[c:CORRESPONDS_WITH]->(p)
 SET c.received = received, c.sent = sent, c.answered = answered, c.avg_reply_hours = avg_reply_hours, c.last = last,
+    c.met = met, c.last_met = last_met,
     c.reply_rate = CASE WHEN received = 0 THEN null ELSE toFloat(answered) / received END,
     c.human_share = CASE WHEN received = 0 THEN 1.0 ELSE toFloat(human) / received END
 WITH c, p, duration.inDays(c.last, datetime()).days AS age_days
@@ -91,12 +97,13 @@ SET c.importance = CASE WHEN p.is_bulk THEN 0.05 ELSE
     + 0.20 * (CASE WHEN c.sent > 10 THEN 10 ELSE c.sent END) / 10.0
     + 0.20 * c.human_share
     + 0.15 * exp(-age_days / 30.0)
+    + 0.10 * (CASE WHEN c.met > 5 THEN 5 ELSE c.met END) / 5.0
     + 0.10 END + coalesce(c.feedback_boost, 0.0)
 """
 
 SUMMARY = """
 CALL () {
-  MATCH (n) WHERE n:Thread OR n:Email OR n:Person OR n:Org RETURN labels(n)[0] AS k, count(*) AS n
+  MATCH (n) WHERE n:Thread OR n:Email OR n:Person OR n:Org OR n:Event RETURN labels(n)[0] AS k, count(*) AS n
   UNION ALL
   MATCH (:Me)-[c:CORRESPONDS_WITH]->() RETURN 'CORRESPONDS_WITH' AS k, count(c) AS n
 }

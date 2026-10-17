@@ -200,10 +200,16 @@ with learned_tab:
     st.caption("Every action you take is a Feedback node in the graph and changes what Mnemo does next.")
     log = fb.feedback_log(ctx.driver)
     st.markdown("**Recent feedback**")
-    st.dataframe(pd.DataFrame(log), hide_index=True, width="stretch") if log else st.caption("No feedback yet.")
+    if log:
+        st.dataframe(pd.DataFrame(log), hide_index=True, width="stretch")
+    else:
+        st.caption("No feedback yet.")
     prefs = fb.scoped_preferences(ctx.driver)
     st.markdown("**How you write to specific people and orgs** (learned from your draft edits)")
-    st.dataframe(pd.DataFrame(prefs), hide_index=True, width="stretch") if prefs else st.caption("None yet.")
+    if prefs:
+        st.dataframe(pd.DataFrame(prefs), hide_index=True, width="stretch")
+    else:
+        st.caption("None yet.")
     st.markdown("**Who matters to you** (from reply behaviour + your feedback)")
     st.dataframe(pd.DataFrame(query("""
         MATCH (:Me)-[c:CORRESPONDS_WITH]->(p:Person)
@@ -219,6 +225,9 @@ with insights_tab:
         st.markdown(f"#### {title}")
         st.caption(explanation)
         rows = query(cypher)
-        st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch") if rows else st.caption("_Nothing yet._")
+        if rows:
+            st.dataframe(pd.DataFrame(rows), hide_index=True, width="stretch")
+        else:
+            st.caption("_Nothing yet._")
         with st.expander("Cypher"):
             st.code(cypher, language="cypher")

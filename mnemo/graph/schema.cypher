@@ -44,3 +44,7 @@ CREATE CONSTRAINT email_id IF NOT EXISTS FOR (n:Email) REQUIRE n.id IS UNIQUE;
 CREATE INDEX thread_last_at IF NOT EXISTS FOR (n:Thread) ON (n.last_at);
 CREATE CONSTRAINT commitment_id IF NOT EXISTS FOR (n:Commitment) REQUIRE n.id IS UNIQUE;
 CREATE FULLTEXT INDEX thread_text IF NOT EXISTS FOR (n:Thread) ON EACH [n.subject, n.summary];
+
+// --- v2: calendar ---
+CREATE CONSTRAINT event_id IF NOT EXISTS FOR (n:Event) REQUIRE n.id IS UNIQUE;
+CREATE INDEX event_start IF NOT EXISTS FOR (n:Event) ON (n.start);
