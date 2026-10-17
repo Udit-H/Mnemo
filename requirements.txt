@@ -1,0 +1,16 @@
+# LLM (Groq, via mnemo/llm.py)
+groq>=0.30
+python-dotenv>=1.0
+
+# Graph
+neo4j>=5.20
+
+# Extraction schemas
+pydantic>=2.7
+
+# Local embeddings (pulls in torch, a large download)
+sentence-transformers>=3.0
+
+# UI
+streamlit>=1.40
+pyvis>=0.3
