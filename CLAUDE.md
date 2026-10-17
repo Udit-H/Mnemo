@@ -45,8 +45,8 @@ components, repo layout, demo script and milestones. If you change the design, u
 ## Status
 
 - [x] Idea + architecture (`docs/ARCHITECTURE.md`)
-- [ ] M0 Setup: code done (`mnemo/graph/db.py`, `schema.cypher`, `python -m scripts.init_db`); waiting on real `.env`
-      values. Verify with `./venv/bin/python -m scripts.init_db`; all checks should pass.
+- [x] M0 Setup: AuraDB connected, schema applied, Groq keys checked. Re-verify any time with
+      `./venv/bin/python -m scripts.init_db`. The venv is at `./venv`.
 - [ ] M1 Ingest: parsers
 - [ ] M2 Extract + write to graph
 - [ ] M3 Recall + agent loop
