@@ -62,7 +62,10 @@ components, repo layout, demo script and milestones. If you change the design, u
       turn). Terminal chat: `python -m scripts.chat [--show-memory] [--no-remember]`. `--forget` deletes all live
       sessions (run it after rehearsals so test chats don't pollute memory). After ingest/extract, run
       `python -m scripts.embed` to embed new Topics and user Messages (local model).
-- [ ] M4 Streamlit UI (chat + graph + insights)
+- [x] M4 UI: `./venv/bin/streamlit run app/streamlit_app.py`. Chat tab: chat + per-turn "memory used" pyvis
+      graph (`app/graph_view.py`) + metrics. Insights tab: canned Cypher from `mnemo/graph/insights.py`, each
+      shown with its query. Sidebar: graph stats, remember toggle, new session, "Forget all live sessions".
+      Headless test: `streamlit.testing.v1.AppTest` (see the M4 commit).
 - [ ] M5 Demo polish + seeded backup graph
 
 Update this checklist as milestones land.
