@@ -14,3 +14,8 @@ sentence-transformers>=3.0
 # UI
 streamlit>=1.40
 pyvis>=0.3
+
+# Gmail
+google-api-python-client>=2.100
+google-auth-oauthlib>=1.2
+google-auth-httplib2>=0.2

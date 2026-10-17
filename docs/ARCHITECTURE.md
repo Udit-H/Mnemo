@@ -1,5 +1,42 @@
 # Architecture — Personal AI Agent with Graph Memory
 
+> **Direction change (v2, current):** Mnemo is now a **personal assistant on the user's Gmail** that adapts to them
+> through the graph. Section 0 below describes v2. Sections 1–10 describe v1 (memory from AI chat logs), which is
+> built and remains the foundation: it supplies Goals, Contexts and Topics that emails link to.
+
+## 0. v2 — Gmail PA that adapts through the graph
+
+**Pitch:** a PA that learns who matters to you, what you owe people, and how you write to each of them, from
+your real behaviour. It gets better every time you approve, edit or dismiss something. The graph is the learning
+mechanism, not a store attached to a chatbot.
+
+### Email graph model
+
+```
+(:Me)-[:IS]->(:Person:Self {email})
+(:Person {email, name, is_bulk})-[:WORKS_AT]->(:Org {domain})          // freemail domains get no Org
+(:Thread {id, subject, last_at, snippet, labels, unread, in_inbox, is_bulk})-[:HAS_EMAIL]->(:Email {id, at, subject, snippet, labels})
+(:Email)-[:FROM]->(:Person) ; (:Email)-[:TO|CC]->(:Person)
+(:Me)-[:CORRESPONDS_WITH {received, sent, incoming, answered, reply_rate, avg_reply_hours, last, importance}]->(:Person)
+// G3+
+(:Thread)-[:HAS_COMMITMENT]->(:Task {text, due, owner: me|them, status})
+(:Thread)-[:ABOUT]->(:Topic) ; (:Thread)-[:IN_CONTEXT]->(:Context)          // links email to v1 memory
+(:Preference)-[:APPLIES_TO]->(:Person|:Org)                                 // tone/length/sign-off per relationship
+```
+
+### How it adapts
+
+| Signal | Source | Effect |
+|---|---|---|
+| Reply rate, reply speed, volume and recency per person | Gmail headers (G2, no LLM) | `CORRESPONDS_WITH.importance` → inbox ranking |
+| Bulk senders | `List-Unsubscribe` / `Precedence` headers | sink in triage |
+| Commitments ("I'll send it Friday") | LLM on thread bodies (G3) | open-commitment reminders |
+| Draft edits | diff between the agent's draft and the user's version (G5) | Preference scoped to that Person/Org |
+| Approve / dismiss in triage | UI actions (G5) | `feedback_boost` on `CORRESPONDS_WITH` |
+
+**Safety:** scopes are `gmail.readonly` + `gmail.compose`. The agent creates drafts only and never calls send.
+Thread text sent to Groq is limited to the threads being extracted or drafted.
+
 > Neo4j × hackFront India Graph Builder Build Sprint (Bengaluru, 17 Oct 2026), **Open Problem Statement**.
 > Working name: **Mnemo** (placeholder, rename freely).
 

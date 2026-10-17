@@ -35,3 +35,10 @@ CREATE INDEX conversation_started IF NOT EXISTS FOR (n:Conversation) ON (n.start
 MERGE (:Me {id: 'me'});
 UNWIND ['coding', 'learning', 'planning', 'health', 'finance', 'career', 'personal'] AS d
 MERGE (:Domain {name: d});
+
+// --- v2: email ---
+CREATE CONSTRAINT person_email IF NOT EXISTS FOR (n:Person) REQUIRE n.email IS UNIQUE;
+CREATE CONSTRAINT org_domain IF NOT EXISTS FOR (n:Org) REQUIRE n.domain IS UNIQUE;
+CREATE CONSTRAINT thread_id IF NOT EXISTS FOR (n:Thread) REQUIRE n.id IS UNIQUE;
+CREATE CONSTRAINT email_id IF NOT EXISTS FOR (n:Email) REQUIRE n.id IS UNIQUE;
+CREATE INDEX thread_last_at IF NOT EXISTS FOR (n:Thread) ON (n.last_at);

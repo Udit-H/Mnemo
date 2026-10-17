@@ -7,10 +7,15 @@ Hackathon project for the **Neo4j × hackFront India Graph Builder Build Sprint*
 Neo4j**, innovation and practicality. Judges want to see the graph doing the work, not just a UI with a database
 attached.
 
-**Idea (finalized):** a personal AI agent whose long-term memory is a Neo4j knowledge graph that spans all domains of
-the user's life (coding, learning, planning, …). It recalls context by graph traversal, answers with it, writes new
-memories (facts, preferences, tasks, outcomes, corrections) back to the graph, and shows the subgraph it used.
-Working name: **Mnemo**.
+**Idea (v2, current): Mnemo is a personal assistant (PA) agent on the user's Gmail that adapts to them through a
+Neo4j graph.** It triages, summarizes, tracks commitments and drafts replies. Every email, contact and user action
+(approve / edit / dismiss) feeds the graph, so ranking and drafting change over time: who matters
+(`CORRESPONDS_WITH` stats from real behaviour), what the user owes people (commitments), and how they write to each
+person (preferences scoped to a Person/Org). **Drafts only. The agent never sends email.** Gmail comes first; other
+tools come later.
+
+v1 (built, now the foundation): long-term memory from AI chat logs (Claude Code + Gemini) → Goals, Contexts,
+Topics, Preferences. In v2 this is context about what the user is working on, linked to email.
 
 **Read `docs/ARCHITECTURE.md` before making design changes.** It is the source of truth for the graph schema,
 components, repo layout, demo script and milestones. If you change the design, update that doc in the same change.
@@ -66,6 +71,17 @@ components, repo layout, demo script and milestones. If you change the design, u
       graph (`app/graph_view.py`) + metrics. Insights tab: canned Cypher from `mnemo/graph/insights.py`, each
       shown with its query. Sidebar: graph stats, remember toggle, new session, "Forget all live sessions".
       Headless test: `streamlit.testing.v1.AppTest` (see the M4 commit).
-- [ ] M5 Demo polish + seeded backup graph
+- [ ] M5 Demo polish + seeded backup graph (after v2)
+
+### v2: Gmail PA
+- [ ] G1 Gmail connector (`mnemo/gmail/`): OAuth (`secrets/gmail_credentials.json` → `secrets/gmail_token.json`,
+      scopes readonly + compose), fetch threads, create drafts. Login: `python -m scripts.gmail_auth`.
+- [ ] G2 Email → graph (no LLM): Person, Org, Thread, Email + `CORRESPONDS_WITH` stats/importance.
+      `python -m scripts.gmail_sync`.
+- [ ] G3 LLM extraction on recent threads: commitments, asks, topics; link to v1 Contexts/Goals.
+- [ ] G4 Tool-using agent (triage_inbox, person_context, open_commitments, draft_reply, search_memory), with
+      Cypher visible.
+- [ ] G5 Feedback loop: approve/edit/dismiss → graph updates (scoped preferences, importance boosts).
+- [ ] G6 PA UI: graph-ranked inbox with reasons, thread context panel, draft, agent chat.
 
 Update this checklist as milestones land.
