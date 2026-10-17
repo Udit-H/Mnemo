@@ -32,7 +32,7 @@ class ContextRef(BaseModel):
 
 class Conversation(BaseModel):
     id: str  # "<source>:<native id>"
-    source: Literal["claude_code", "chatgpt", "claude_ai", "gemini"]
+    source: Literal["claude_code", "chatgpt", "claude_ai", "gemini", "live"]  # live = chats with the Mnemo agent
     title: str
     started_at: datetime | None = None
     ended_at: datetime | None = None

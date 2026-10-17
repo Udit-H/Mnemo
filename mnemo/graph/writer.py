@@ -216,6 +216,24 @@ DETACH DELETE n
 """
 
 
+FORGET_SOURCE = """
+MATCH (c:Conversation {source: $source})
+OPTIONAL MATCH (x)-[:FROM|IN]->(c) WHERE x:Task OR x:Correction
+OPTIONAL MATCH (x)-[:LED_TO]->(o:Outcome)
+DETACH DELETE x, o
+WITH DISTINCT c
+OPTIONAL MATCH (c)-[:HAS_MESSAGE]->(m)
+DETACH DELETE c, m
+"""
+
+
+def forget_source(driver: Driver, source: str) -> int:
+    """Delete every conversation from one source and the memory only it contributed. Returns nodes deleted."""
+    deleted = driver.execute_query(FORGET_SOURCE, source=source, database_=database()).summary.counters.nodes_deleted
+    link_topics(driver)
+    return deleted
+
+
 def link_topics(driver: Driver) -> None:
     driver.execute_query(PRUNE_ORPHANS, database_=database())
     driver.execute_query(LINK_TOPICS, database_=database())

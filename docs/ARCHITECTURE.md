@@ -180,6 +180,13 @@ WHERE m:Preference OR m:Goal OR m:Outcome OR m:Task OR m:Conversation
 RETURN p, score ORDER BY score DESC LIMIT 50
 ```
 
+As built: seeds = fulltext `memory_names` (Lucene score capped and normalized) + vector `topic_embedding`
+(score ≥ 0.55). Conversations reached from seeds are scored by seed score × (0.5 + 0.5 × recency), with a 60-day
+half-life, plus conversations whose past *user* messages are close in meaning (`message_embedding`, ≥ 0.6). The
+top 6 are kept. Preferences are active ones scoped to those conversations' domains/contexts, global ones, or
+direct seed hits. The agent seeds recall with the current message plus the previous 2 user messages, so
+follow-ups like "no, use X" keep their context.
+
 ### 5.5 Agent
 
 - LLM: Groq via `mnemo/llm.py` (`GroqPool`: key rotation + model fallback on rate limits). Agent model

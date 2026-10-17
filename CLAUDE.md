@@ -57,7 +57,11 @@ components, repo layout, demo script and milestones. If you change the design, u
       tier: extract Gemini in batches of about 40, not all 469 at once. Known weakness: topic reuse is low.
       Embedding-based topic merge is planned for M3. Cross-source bridges exist (jwt, fastapi, duckdb, bm25 link
       Gemini ↔ Claude Code across coding/learning/career).
-- [ ] M3 Recall + agent loop
+- [x] M3 Recall + agent: `mnemo/agent/recall.py` (seed → expand → gather; returns LLM context + subgraph) and
+      `mnemo/agent/agent.py` (recall → answer → remember: each chat is a `live` Conversation, re-extracted every
+      turn). Terminal chat: `python -m scripts.chat [--show-memory] [--no-remember]`. `--forget` deletes all live
+      sessions (run it after rehearsals so test chats don't pollute memory). After ingest/extract, run
+      `python -m scripts.embed` to embed new Topics and user Messages (local model).
 - [ ] M4 Streamlit UI (chat + graph + insights)
 - [ ] M5 Demo polish + seeded backup graph
 
