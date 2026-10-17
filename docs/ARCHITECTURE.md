@@ -121,8 +121,18 @@ preferences are `WHERE r.until IS NULL`.
 | Claude Code logs | `~/.claude/projects/<project>/*.jsonl` | Conversation (session) + Messages + tool calls + files touched |
 | Stretch: Calendar / Notion | API / MCP | Context, Task, Entity |
 
-All parsers emit the same normalized `Conversation{source, id, title, started_at, messages[]}` shape, so extraction and
-graph writing are shared.
+All parsers emit the same normalized `Conversation` (`mnemo/ingest/models.py`), so extraction and graph writing are
+shared. Conventions:
+
+- Ids are `<source>:<native id>`. Context ids don't depend on the source (`project:<cwd>`), so any source can attach
+  to the same project.
+- Consecutive same-role entries are merged, so one turn becomes one `Message` (capped at 4000 chars).
+- Claude Code: `<system-reminder>`, slash-command echoes, meta and sidechain entries are dropped. Subagent logs are
+  skipped. Tool calls are kept as `Conversation.tool_calls / tool_errors / tools_used / files_touched` properties.
+  These give outcome signals for M2.
+- ChatGPT: follows the `current_node → parent` branch, which is what the user last saw, and ignores regenerated
+  branches.
+- `FOLLOWED_BY` chains are rebuilt for each Context after every ingest, ordered by `started_at`.
 
 ### 5.2 Extractor
 

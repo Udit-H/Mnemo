@@ -47,7 +47,9 @@ components, repo layout, demo script and milestones. If you change the design, u
 - [x] Idea + architecture (`docs/ARCHITECTURE.md`)
 - [x] M0 Setup: AuraDB connected, schema applied, Groq keys checked. Re-verify any time with
       `./venv/bin/python -m scripts.init_db`. The venv is at `./venv`.
-- [ ] M1 Ingest: parsers
+- [x] M1 Ingest: `python -m scripts.ingest {claude_code|chatgpt|claude_ai} [path] [--limit N] [--dry-run]`.
+      Claude Code is loaded (25 sessions, 703 messages, 11 project Contexts). The ChatGPT and Claude.ai parsers are
+      tested only on samples shaped like the export format; check them once the real exports arrive.
 - [ ] M2 Extract + write to graph
 - [ ] M3 Recall + agent loop
 - [ ] M4 Streamlit UI (chat + graph + insights)
