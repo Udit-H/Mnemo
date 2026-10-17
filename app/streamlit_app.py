@@ -18,6 +18,7 @@ from mnemo.agent.tools import ToolContext, compose_reply, save_draft  # noqa: E4
 from mnemo.gmail.client import get_service, my_addresses  # noqa: E402
 from mnemo.graph import feedback as fb  # noqa: E402
 from mnemo.graph.db import database, get_driver  # noqa: E402
+from mnemo.graph.email import recompute  # noqa: E402
 from mnemo.graph.insights import INSIGHTS  # noqa: E402
 from mnemo.graph.pa import THREAD_NEIGHBORHOOD, TRIAGE  # noqa: E402
 from mnemo.llm import GroqPool  # noqa: E402
@@ -71,6 +72,12 @@ with st.sidebar:
     days = st.slider("Inbox window (days)", 7, 90, 30)
     st.divider()
     st.caption("Drafts are saved to Gmail Drafts only. Mnemo never sends email.")
+    if st.button("Reset demo feedback", width="stretch",
+                 help="Forget dismiss/⬆ clicks and styles learned from draft edits (e.g. after rehearsing)."):
+        fb.reset_feedback(ctx.driver)
+        recompute(ctx.driver, ctx.self_emails)
+        st.toast("Feedback reset")
+        st.rerun()
 
 inbox_tab, ask_tab, learned_tab, insights_tab = st.tabs(
     ["📥 Inbox", "💬 Ask Mnemo", "🧠 What Mnemo learned", "📊 Memory insights"])

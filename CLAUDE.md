@@ -71,7 +71,9 @@ components, repo layout, demo script and milestones. If you change the design, u
       graph (`app/graph_view.py`) + metrics. Insights tab: canned Cypher from `mnemo/graph/insights.py`, each
       shown with its query. Sidebar: graph stats, remember toggle, new session, "Forget all live sessions".
       Headless test: `streamlit.testing.v1.AppTest` (see the M4 commit).
-- [ ] M5 Demo polish + seeded backup graph (after v2)
+- [x] M5 Polish: README (pitch, setup, demo script, Cypher), `scripts/init_db` preflight now checks Gmail too,
+      `scripts/refresh` (all data steps), `scripts/backup export|restore` (JSON; restore into an empty Neo4j 5.26+,
+      e.g. Docker. Export tested; restore NOT yet tested), sidebar "Reset demo feedback".
 
 ### v2: Gmail PA
 - [x] G1 Gmail connector (`mnemo/gmail/`): OAuth (`secrets/gmail_credentials.json` → `secrets/gmail_token.json`,

@@ -111,3 +111,18 @@ def feedback_log(driver: Driver) -> list[dict]:
 
 def scoped_preferences(driver: Driver) -> list[dict]:
     return _rows(driver, SCOPED_PREFERENCES)
+
+
+RESET_FEEDBACK = [
+    "MATCH (f:Feedback) OPTIONAL MATCH (f)-[:TAUGHT]->(p:Preference {source: 'draft_edit'}) DETACH DELETE f, p",
+    "MATCH (th:Thread) WHERE th.dismissed IS NOT NULL OR th.feedback_boost IS NOT NULL "
+    "REMOVE th.dismissed, th.feedback_boost",
+    "MATCH (:Me)-[c:CORRESPONDS_WITH]->() WHERE c.feedback_boost IS NOT NULL REMOVE c.feedback_boost",
+]
+
+
+def reset_feedback(driver: Driver) -> None:
+    """Forget all UI feedback (e.g. after rehearsing the demo). Call email.recompute() after to restore importance.
+    Commitment checkboxes are left alone: they reflect real-world state."""
+    for q in RESET_FEEDBACK:
+        driver.execute_query(q, database_=database())
